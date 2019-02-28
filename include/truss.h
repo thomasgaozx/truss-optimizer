@@ -10,6 +10,7 @@ class Truss
 public:
     Truss();
 
+    /* `highest` flag sets a lowerbound for the joint */
     void addJoint(double x, double y, bool free = true, bool highest = false);
     bool addMember(int i, int j);
     void addLoad(int jointNum, double load);
@@ -18,7 +19,7 @@ public:
 
     /** Sets the possible displacements of a free joints. */
     bool setDisplacements(int num, double radius);
-    
+
     /**
      * Solve the truss and in the meantime checks constraint (optional)
      * Return false if there is statistical indeterminacy or other errors.
@@ -26,7 +27,7 @@ public:
     bool solve();
 
     /**
-     * Evaluates the truss configuration with provided cost model, if it is more 
+     * Evaluates the truss configuration with provided cost model, if it is more
      * cost-effective than the recorded one, update the recorded one
     */
     void evaluateCost();

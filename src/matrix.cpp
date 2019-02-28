@@ -35,12 +35,12 @@ int MatrixSolver::rref(Mat & mat) {
 int MatrixSolver::getLeading1Pos(const Mat & mat, int row) {
     int pos = 0;
     int colSize = mat[0].size();
-    
+
     // ensure all entries before leading 1 is 0
     for (; mat[row][pos] == 0; ++pos)
         if (pos == colSize - 2)
             return -1;
-    
+
     int l1 = pos++;
 
     // ensure all entries after leading 1 is 0 (till the last entry)

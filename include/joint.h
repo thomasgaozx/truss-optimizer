@@ -1,28 +1,48 @@
 #ifndef JOINT_H_
 #define JOINT_H_
 
+#include <memory>
 #include <vector>
 #include <list>
 #include "coordinate.h"
 
-/** constraints */
-constexpr double MAX_HEIGHT = 10.5;
-constexpr double MIN_HEIGHT = 9.5;
-constexpr double MAX_WIDTH = 41;
+/* constraints for joint positions */
+class BaseConstraint {
+public:
+    BaseConstraint() = default;
+    virtual ~BaseConstraint() = default;
+
+    /* returns true if the given `j` is in constraint range */
+    virtual bool checkPos(const Coordinate & j) {
+        return j.x > 0 && j.x < MAX_WIDTH && j.y > 0 && j.y < MAX_HEIGHT;
+    }
+
+protected:
+    static constexpr double MAX_HEIGHT = 10.5;
+    static constexpr double MIN_HEIGHT = 9.5;
+    static constexpr double MAX_WIDTH = 41;
+};
 
 /** each joint is indexed in the truss */
 struct Joint : Coordinate
 {
-    Joint() : Coordinate{}, unknowns{ 0 }, neighbours{}, load{ 0 } {}
-    Joint(double x, double y) : Coordinate{ x, y }, unknowns{ 0 }, neighbours{}, load{ 0 } {}
+    Joint() : Coordinate{}, unknowns{ 0 }, neighbours{}, load{ 0 },
+        constraint{ std::make_unique<BaseConstraint>() } { }
+
+    Joint(double x, double y)
+        : Coordinate{ x, y }, unknowns{ 0 }, neighbours{}, load{ 0 },
+        constraint{ std::make_unique<BaseConstraint>() } { }
+
+    Joint(double x, double y, std::unique_ptr<BaseConstraint> && customConstraints)
+        : Coordinate{ x, y }, unknowns{ 0 }, neighbours{}, load{ 0 },
+        constraint{ std::move(customConstraints) } { }
 
     bool operator==(const Joint & other) const {
         return other.x == x && other.y == y;
     }
 
-    virtual bool posIsValid() {
-        return x > 0 && x < MAX_WIDTH
-            && y > 0 && y < MAX_HEIGHT;
+    bool posIsValid() {
+        return constraint->checkPos(*this);
     }
 
     void shiftPos(double dx, double dy) {
@@ -33,21 +53,8 @@ struct Joint : Coordinate
     int unknowns;
     std::vector<int> neighbours; /*indices of neighbouring joints*/
     double load;
-};
 
-/**
- * A joint in the truss that has the high ground.
-*/
-struct HighestJoint : Joint {
-
-    HighestJoint() : Joint{} {}
-    HighestJoint(double x, double y) : Joint{ x, y } {}
-
-    bool posIsValid() override {
-        std::cout << "CHECKED!" << std::endl;
-        return x > 0 && x < MAX_WIDTH
-            && y > MIN_HEIGHT && y < MAX_HEIGHT;
-    }
+    std::unique_ptr<BaseConstraint> constraint;
 };
 
 #endif

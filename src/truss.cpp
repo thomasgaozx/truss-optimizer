@@ -8,16 +8,26 @@ using namespace std;
 constexpr double UNSOLVED = numeric_limits<double>::max();
 const double PI = atan(1.0) * 4;
 
-using Direction = Coordinate;
+using Direction = Coordinate; /* reuse exact same member fields */
 
-Truss::Truss() : joints{}, freeJoints{}, internalForces{}, displacements{}, 
+Truss::Truss() : joints{}, freeJoints{}, internalForces{}, displacements{},
         bestTruss{ UNSOLVED, vector<Coordinate>() } {}
 
+/**
+ * Specialized constraint class for a joint that has the high ground
+ * (with additional position constraints)
+*/
+class HighestJointConstraint : public BaseConstraint {
+public:
+    bool checkPos(const Coordinate & j) override {
+        return j.x > 0 && j.x < MAX_WIDTH
+            && j.y > MIN_HEIGHT && j.y < MAX_HEIGHT;
+    }
+};
+
 void Truss::addJoint(double x, double y, bool free, bool highest) {
-    if (highest)
-        joints.push_back(HighestJoint{ x, y }); 
-    else
-        joints.push_back(Joint{ x, y });
+    joints.push_back(highest ?
+        Joint{ x, y, make_unique<HighestJointConstraint>() } : Joint{ x, y });
     bestTruss.second.push_back(Coordinate{ x, y });
 
     if (free)
@@ -151,7 +161,7 @@ bool Truss::solve() {
             { return joints[j1].unknowns > joints[j2].unknowns; };
 
     /* best effort min heap: solve equations with minimum unknowns first.
-       It is only best-effort because the unknowns of a random joint in 
+       It is only best-effort because the unknowns of a random joint in
        the heap will be updated whenever a joint is solved. */
     priority_queue<int, vector<int>, decltype(comp)> pq{ comp };
     deque<int> dump;
@@ -219,7 +229,7 @@ void Truss::optimize() {
 void Truss::display() const {
     // print joints
     for (int i = 0; i < (int)joints.size(); ++i)
-        cout << (char)('A' + i) << ": (" << joints[i].x << ", " 
+        cout << (char)('A' + i) << ": (" << joints[i].x << ", "
             << joints[i].y << ")" << endl;
 
     // print internal forces
